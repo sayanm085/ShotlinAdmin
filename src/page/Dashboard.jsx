@@ -49,6 +49,7 @@ export default function Dashboard() {
       { icon: <PackageSearch size={24} />, label: "Services", to: "/dashboard/serviceslist" },
       { icon: <Contact size={24} />, label: "contactrequests", to: "/dashboard/contactrequests" }, 
       { icon: <PencilRuler size={24} />,label: "WebContent Edit",to: "/dashboard/webcontentedit",},
+      { icon: <CalendarCheck size={24} />, label: "Quotation Manager", to: "/dashboard/quotationmanager" },
     ],
     []
   );
