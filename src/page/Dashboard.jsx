@@ -9,6 +9,7 @@ import {
   PencilRuler,
   LogOut,
   Menu,
+  CirclePercent,
   X,
   ChevronLeft,
   ChevronRight,
@@ -50,6 +51,8 @@ export default function Dashboard() {
       { icon: <Contact size={24} />, label: "contactrequests", to: "/dashboard/contactrequests" }, 
       { icon: <PencilRuler size={24} />,label: "WebContent Edit",to: "/dashboard/webcontentedit",},
       { icon: <CalendarCheck size={24} />, label: "Quotation Manager", to: "/dashboard/quotationmanager" },
+      { icon: <CirclePercent size={24} />, label: "Financial Calculator", to: "/dashboard/financialcalculator" },
+
     ],
     []
   );

@@ -12,7 +12,8 @@ import AllCustomers from './Layout/AllCustomers.layout.jsx'
 import AllServices from './Layout/AllServices.layout.jsx'
 import ContactRequestsTable from './Layout/ContactRequestsTable.layout.jsx'
 import WebContentedit from './Layout/WebContentedit.layout';
-import QuotationManager from './Layout/QuotationManager.jsx'
+import QuotationManager from './Layout/QuotationManager.layout.jsx'
+import FinancialCalculator from './Layout/FinancialCalculator.layout.jsx'
 
 
 
@@ -40,6 +41,7 @@ const router = createBrowserRouter(
           <Route path="contactrequests" element={<ContactRequestsTable />} />
           <Route path="webcontentedit" element={<WebContentedit />} />
           <Route path="quotationmanager" element={<QuotationManager />} />
+          <Route path="financialcalculator" element={<FinancialCalculator />} />
           {/* Add more nested routes here */}
         </Route>
         <Route path="login" element={<LoginPage />} />

@@ -12,9 +12,6 @@ function App() {
         <main className="flex-grow ">
           <Outlet />
         </main>
-        <footer className="bg-gray-800 text-white p-4 text-center">
-          &copy; 2023 My Application
-        </footer>
       </div>
     </>
   );
