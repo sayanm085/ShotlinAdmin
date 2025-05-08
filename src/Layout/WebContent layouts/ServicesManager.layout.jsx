@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -10,34 +10,32 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogTrigger, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 
-/**
- * ServicesManager
- * Demo admin UI to list, add, edit, and delete service items.
- * Shows preview of existing services for update/delete identification.
- */
-export default function ServicesManager() {
-  // Demo initial services
-  const initialServices = [
-    { id: 'SV-001', serviceName: 'Web Development', serviceDescription: 'Full-stack web development services using modern technologies.' },
-    { id: 'SV-002', serviceName: 'UI/UX Design', serviceDescription: 'User-centered UI and UX design for websites and mobile applications.' },
-    { id: 'SV-003', serviceName: 'Cloud Integration', serviceDescription: 'Seamless integration with AWS, Azure, and GCP for scalable solutions.' },
-  ];
-
-  const [services, setServices] = useState(initialServices);
+export default function ServicesManager({ initialData }) {
+  const [services, setServices] = useState(initialData || []);
   const [selected, setSelected] = useState(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
 
-  // Save add/edit
+  useEffect(() => {
+    setServices(initialData || []);
+  }, [initialData]);
+
   const handleSave = () => {
     if (!formData.name.trim() || !formData.description.trim()) {
       toast.error('Please enter both name and description.');
       return;
     }
+
     if (selected) {
       setServices((list) =>
         list.map((svc) =>
@@ -48,19 +46,19 @@ export default function ServicesManager() {
       );
       toast.success('Service updated (demo)');
     } else {
-      const newId = `SV-${String(services.length + 1).padStart(3, '0')}`;
+      const newId = `SV-${Date.now()}`;
       setServices((list) => [
         ...list,
         { id: newId, serviceName: formData.name, serviceDescription: formData.description },
       ]);
       toast.success('Service added (demo)');
     }
+
     setFormOpen(false);
     setSelected(null);
     setFormData({ name: '', description: '' });
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     setServices((list) => list.filter((svc) => svc.id !== selected.id));
     toast.success('Service deleted (demo)');
@@ -72,20 +70,27 @@ export default function ServicesManager() {
     <div className="p-6 bg-white rounded-lg shadow max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-semibold">Services Content</h3>
-        <Dialog open={isFormOpen} onOpenChange={(o) => {
-          setFormOpen(o);
-          if (!o) {
-            setSelected(null);
-            setFormData({ name: '', description: '' });
-          }
-        }}>
+        <Dialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) {
+              setSelected(null);
+              setFormData({ name: '', description: '' });
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>Add Service</Button>
           </DialogTrigger>
           <DialogContent>
             <div className="space-y-2">
               <h2 className="text-xl font-bold">{selected ? 'Edit Service' : 'New Service'}</h2>
-              <p className="text-sm text-gray-500">{selected ? `Modify service ${selected.serviceName}` : 'Enter details for a new service.'}</p>
+              <p className="text-sm text-gray-500">
+                {selected
+                  ? `Modify service ${selected.serviceName}`
+                  : 'Enter details for a new service.'}
+              </p>
             </div>
             <div className="mt-4 space-y-4">
               <div>
@@ -101,7 +106,9 @@ export default function ServicesManager() {
                 <Textarea
                   rows={4}
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Brief description of the service"
                 />
               </div>
@@ -140,13 +147,19 @@ export default function ServicesManager() {
                     variant="outline"
                     onClick={() => {
                       setSelected(svc);
-                      setFormData({ name: svc.serviceName, description: svc.serviceDescription });
+                      setFormData({
+                        name: svc.serviceName,
+                        description: svc.serviceDescription,
+                      });
                       setFormOpen(true);
                     }}
                   >
                     Edit
                   </Button>
-                  <Dialog open={isDeleteOpen && selected?.id === svc.id} onOpenChange={(o) => setDeleteOpen(o)}>
+                  <Dialog
+                    open={isDeleteOpen && selected?.id === svc.id}
+                    onOpenChange={(open) => setDeleteOpen(open)}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         size="sm"
@@ -163,11 +176,15 @@ export default function ServicesManager() {
                       <div className="space-y-2">
                         <h2 className="text-xl font-bold">Delete Service</h2>
                         <p className="text-sm text-gray-500">
-                          Are you sure you want to delete <span className="font-semibold">{selected?.serviceName}</span>? This cannot be undone.
+                          Are you sure you want to delete{' '}
+                          <span className="font-semibold">{selected?.serviceName}</span>? This
+                          cannot be undone.
                         </p>
                       </div>
                       <DialogFooter className="mt-4">
-                        <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>
+                          Delete
+                        </Button>
                         <DialogClose asChild>
                           <Button variant="outline">Cancel</Button>
                         </DialogClose>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableHeader,
@@ -10,75 +10,84 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogTrigger, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 
-/**
- * FAQsManager
- * Demo admin UI to list, add, edit, and delete FAQ items.
- * Shows preview of existing question/answer to identify changes.
- */
-export default function FAQsManager() {
-  // Demo initial FAQs
-  const initialFAQs = [
-    { id: 'FQ-001', question: 'What is Shortlin?', answer: 'Shortlin is a comprehensive SaaS platform offering B2B, B2C, and B2G solutions.' },
-    { id: 'FQ-002', question: 'How do I reset my password?', answer: 'Go to Settings > Account > Reset Password and follow the onscreen instructions.' },
-    { id: 'FQ-003', question: 'Can I integrate with third-party APIs?', answer: 'Yes, Shortlin supports integrations with various third-party services via REST and Webhooks.' },
-  ];
+export default function FAQsManager({ initialData }) {
+  // Map incoming API shape to local FAQ shape
+  const mapToFAQ = (data) =>
+    data.map((item) => ({
+      id: item._id,
+      question: item.FAQsQuestion,
+      answer: item.FAQsAnswer,
+    }));
 
-  const [faqs, setFaqs] = useState(initialFAQs);
+  // State to manage FAQs
+  const [faqs, setFaqs] = useState([]);
   const [selected, setSelected] = useState(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [formData, setFormData] = useState({ question: '', answer: '' });
 
-  // Handle add/edit save
+  // Sync with incoming prop
+  useEffect(() => {
+    setFaqs(mapToFAQ(initialData || []));
+  }, [initialData]);
+
   const handleSave = () => {
-    if (!formData.question.trim() || !formData.answer.trim()) {
+    const { question, answer } = formData;
+    if (!question.trim() || !answer.trim()) {
       toast.error('Please enter both question and answer.');
       return;
     }
+
     if (selected) {
       setFaqs((list) =>
         list.map((fq) =>
-          fq.id === selected.id
-            ? { ...fq, question: formData.question, answer: formData.answer }
-            : fq
+          fq.id === selected.id ? { ...fq, question, answer } : fq
         )
       );
-      toast.success('FAQ updated (demo)');
+      toast.success('FAQ updated');
     } else {
-      const newId = `FQ-${String(faqs.length + 1).padStart(3, '0')}`;
-      setFaqs((list) => [
-        ...list,
-        { id: newId, question: formData.question, answer: formData.answer },
-      ]);
-      toast.success('FAQ added (demo)');
+      const newId = `temp-${Date.now()}`;
+      setFaqs((list) => [...list, { id: newId, question, answer }]);
+      toast.success('FAQ added');
     }
+
     setFormOpen(false);
     setSelected(null);
     setFormData({ question: '', answer: '' });
   };
 
-  // Confirm delete
   const confirmDelete = () => {
+    if (!selected) return;
     setFaqs((list) => list.filter((fq) => fq.id !== selected.id));
-    toast.success('FAQ deleted (demo)');
+    toast.success('FAQ deleted');
     setDeleteOpen(false);
     setSelected(null);
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow max-w-4xl mx-auto space-y-6">
+      {/* Header & Add Button */}
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-semibold">FAQs Content</h3>
-        <Dialog open={isFormOpen} onOpenChange={(o) => {
-          setFormOpen(o);
-          if (!o) {
-            setSelected(null);
-            setFormData({ question: '', answer: '' });
-          }
-        }}>
+        <Dialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) {
+              setSelected(null);
+              setFormData({ question: '', answer: '' });
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button>Add FAQ</Button>
           </DialogTrigger>
@@ -96,7 +105,9 @@ export default function FAQsManager() {
                 <label className="block text-sm font-medium mb-1">Question</label>
                 <Input
                   value={formData.question}
-                  onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, question: e.target.value })
+                  }
                   placeholder="Enter FAQ question"
                 />
               </div>
@@ -105,7 +116,9 @@ export default function FAQsManager() {
                 <Textarea
                   rows={4}
                   value={formData.answer}
-                  onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, answer: e.target.value })
+                  }
                   placeholder="Enter FAQ answer"
                 />
               </div>
@@ -120,6 +133,7 @@ export default function FAQsManager() {
         </Dialog>
       </div>
 
+      {/* FAQ Table */}
       <div className="overflow-x-auto">
         <Table className="w-full min-w-[600px]">
           <TableHeader>
@@ -152,7 +166,10 @@ export default function FAQsManager() {
                   >
                     Edit
                   </Button>
-                  <Dialog open={isDeleteOpen && selected?.id === fq.id} onOpenChange={(o) => setDeleteOpen(o)}>
+                  <Dialog
+                    open={isDeleteOpen && selected?.id === fq.id}
+                    onOpenChange={setDeleteOpen}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         size="sm"
@@ -169,7 +186,8 @@ export default function FAQsManager() {
                       <div className="space-y-2">
                         <h2 className="text-xl font-bold">Delete FAQ</h2>
                         <p className="text-sm text-gray-500">
-                          Are you sure you want to delete <span className="font-semibold">{selected?.id}</span>? This cannot be undone.
+                          Are you sure you want to delete{' '}
+                          <span className="font-semibold">{selected?.id}</span>? This cannot be undone.
                         </p>
                       </div>
                       <DialogFooter className="mt-4">

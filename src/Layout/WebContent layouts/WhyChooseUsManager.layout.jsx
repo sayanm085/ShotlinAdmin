@@ -1,58 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+  Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogTrigger, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog, DialogTrigger, DialogContent, DialogFooter, DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 
-/**
- * WhyChooseUsManager
- * Demo admin UI to list, add, edit, and delete "Why Choose Us" items.
- * Shows preview of existing logo and live preview of uploaded image.
- */
-export default function WhyChooseUsManager() {
-  const initialItems = [
-    {
-      id: 'WC-001',
-      title: 'Expert Team',
-      reason: 'Our team consists of industry experts with years of experience.',
-      logo: 'https://via.placeholder.com/80?text=Expert',
-    },
-    {
-      id: 'WC-002',
-      title: '24/7 Support',
-      reason: 'We provide round-the-clock support for all clients.',
-      logo: 'https://via.placeholder.com/80?text=Support',
-    },
-    {
-      id: 'WC-003',
-      title: 'Secure Platform',
-      reason: 'Your data is safe with our top-tier security measures.',
-      logo: 'https://via.placeholder.com/80?text=Secure',
-    },
-  ];
-
-  const [items, setItems] = useState(initialItems);
+export default function WhyChooseUsManager({ initialData = [] }) {
+  const [items, setItems] = useState(initialData);
   const [selected, setSelected] = useState(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [formData, setFormData] = useState({ title: '', reason: '', logoURL: '', logoFile: null });
 
-  // Handle add/edit save
+  useEffect(() => {
+    setItems(initialData);
+  }, [initialData]);
+
   const handleSave = () => {
     if (!formData.title.trim() || !formData.reason.trim()) {
       toast.error('Please fill in both title and reason.');
       return;
     }
-    // Determine logo URL: if a file is selected, use its object URL, else use provided URL
+
     const finalLogo = formData.logoFile
       ? URL.createObjectURL(formData.logoFile)
       : formData.logoURL;
@@ -67,7 +41,7 @@ export default function WhyChooseUsManager() {
       );
       toast.success('Item updated (demo)');
     } else {
-      const newId = `WC-${String(items.length + 1).padStart(3, '0')}`;
+      const newId = `WC-${Date.now()}`;
       setItems((list) => [
         ...list,
         { id: newId, title: formData.title, reason: formData.reason, logo: finalLogo },
@@ -75,13 +49,11 @@ export default function WhyChooseUsManager() {
       toast.success('Item added (demo)');
     }
 
-    // Reset
     setFormOpen(false);
     setSelected(null);
     setFormData({ title: '', reason: '', logoURL: '', logoFile: null });
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     setItems((list) => list.filter((it) => it.id !== selected.id));
     toast.success('Item deleted (demo)');
@@ -148,7 +120,7 @@ export default function WhyChooseUsManager() {
                   }}
                   className="block w-full text-sm text-gray-600"
                 />
-                { (formData.logoURL || formData.logoFile) && (
+                {(formData.logoURL || formData.logoFile) && (
                   <img
                     src={
                       formData.logoFile
@@ -158,7 +130,7 @@ export default function WhyChooseUsManager() {
                     alt="Preview"
                     className="mt-3 h-20 w-20 object-contain rounded"
                   />
-                ) }
+                )}
               </div>
             </div>
             <DialogFooter className="mt-4">
@@ -222,13 +194,12 @@ export default function WhyChooseUsManager() {
                       <div className="space-y-2">
                         <h2 className="text-xl font-bold">Delete Item</h2>
                         <p className="text-sm text-gray-500">
-                          Are you sure you want to delete <span className="font-semibold">{selected?.title}</span>? This cannot be undone.
+                          Are you sure you want to delete{' '}
+                          <span className="font-semibold">{selected?.title}</span>? This cannot be undone.
                         </p>
                       </div>
                       <DialogFooter className="mt-4">
-                        <Button variant="destructive" onClick={confirmDelete}>
-                          Delete
-                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
                         <DialogClose asChild>
                           <Button variant="outline">Cancel</Button>
                         </DialogClose>
