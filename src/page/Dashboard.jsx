@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   CirclePercent,
+  PackagePlus,
   X,
   ChevronLeft,
   ChevronRight,
@@ -48,10 +49,12 @@ export default function Dashboard() {
       { icon: <Video size={24} />, label: "Meeting", to: "/dashboard/meeting" },
       { icon: <BookUser size={24} />, label: "Customers", to: "/dashboard/customerslist" },
       { icon: <PackageSearch size={24} />, label: "Services", to: "/dashboard/serviceslist" },
+      { icon: <PackagePlus size={24} />, label: "Services Upload", to: "/dashboard/servicesupload" },
       { icon: <Contact size={24} />, label: "contactrequests", to: "/dashboard/contactrequests" }, 
       { icon: <PencilRuler size={24} />,label: "WebContent Edit",to: "/dashboard/webcontentedit",},
       { icon: <CalendarCheck size={24} />, label: "Quotation Manager", to: "/dashboard/quotationmanager" },
       { icon: <CirclePercent size={24} />, label: "Financial Calculator", to: "/dashboard/financialcalculator" },
+      
 
     ],
     []

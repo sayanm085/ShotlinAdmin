@@ -1,26 +1,92 @@
-// src/hooks/useWebContent.js
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWebContent, updateHeroContent } from '@/Api/WebContent.api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  fetchWebContent,
+  updateHeroContent,
+  updateBrandPartnersContent,
+  updateServicesContent,
+  updateWhyChooseUsContent,
+  updateFAQsContent,
+} from '@/Api/WebContent.api'
 
+// ✅ Main web content query
 export function useWebContent() {
   return useQuery({
     queryKey: ['webContent'],
     queryFn: fetchWebContent,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
 }
 
+// ✅ Mutation: Hero Section
 export function useUpdateHeroContent() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (formData) => updateHeroContent(formData),
+    mutationFn: updateHeroContent,
     onSuccess: (updatedHero) => {
-      // 1) merge the updated hero into the cache
-      qc.setQueryData(['webContent'], (old) =>
+      queryClient.setQueryData(['webContent'], old =>
         old ? { ...old, hero: updatedHero } : old
-      );
-      // 2) invalidate so that persisted cache and any dependent queries refetch
-      qc.invalidateQueries(['webContent']);
+      )
+      queryClient.invalidateQueries({ queryKey: ['webContent'] })
     },
-  });
+  })
+}
+
+// ✅ Mutation: Brand Partners
+export function useUpdateBrandPartners() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateBrandPartnersContent,
+    onSuccess: (newList) => {
+      queryClient.setQueryData(['webContent'], old =>
+        old ? { ...old, BrandPartners: newList } : old
+      )
+      queryClient.invalidateQueries({ queryKey: ['webContent'] })
+    },
+  })
+}
+
+// ✅ Mutation: Services Content
+export function useUpdateServicesContent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateServicesContent,
+    onSuccess: (updatedServices) => {
+      queryClient.setQueryData(['webContent'], old =>
+        old ? { ...old, Services: updatedServices } : old
+      )
+      queryClient.invalidateQueries({ queryKey: ['webContent'] })
+    },
+  })
+}
+
+// ✅ Mutation: Why Choose Us
+export function useUpdateWhyChooseUsContent() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateWhyChooseUsContent,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['webContent'], old =>
+        old ? { ...old, WhyChooseUs: updated } : old
+      )
+      queryClient.invalidateQueries({ queryKey: ['webContent'] })
+    },
+  })
+}
+
+// ✅ Mutation: FAQs
+export function useUpdateFAQs() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateFAQsContent,
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['webContent'], old =>
+        old ? { ...old, FAQs: updated } : old
+      )
+      queryClient.invalidateQueries({ queryKey: ['webContent'] })
+    },
+  })
 }

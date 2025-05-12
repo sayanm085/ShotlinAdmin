@@ -1,3 +1,4 @@
+// src/Layout/WebContent layouts/FAQsManager.layout.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -16,66 +17,92 @@ import {
   DialogContent,
   DialogFooter,
   DialogClose,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateFAQsContent } from '@/Api/WebContent.api';
 
-export default function FAQsManager({ initialData }) {
-  // Map incoming API shape to local FAQ shape
-  const mapToFAQ = (data) =>
-    data.map((item) => ({
-      id: item._id,
-      question: item.FAQsQuestion,
-      answer: item.FAQsAnswer,
+export default function FAQsManager({ initialData = [] }) {
+  // 1️⃣ Map API shape to local
+  const normalize = (arr) =>
+    arr.map((x) => ({
+      id: x._id,
+      question: x.FAQsQuestion,
+      answer: x.FAQsAnswer,
     }));
 
-  // State to manage FAQs
-  const [faqs, setFaqs] = useState([]);
+  // 2️⃣ Local state
+  const [faqs, setFaqs] = useState(normalize(initialData));
   const [selected, setSelected] = useState(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const [formData, setFormData] = useState({ question: '', answer: '' });
 
-  // Sync with incoming prop
+  // 3️⃣ Keep in sync when prop changes
   useEffect(() => {
-    setFaqs(mapToFAQ(initialData || []));
+    setFaqs(normalize(initialData));
   }, [initialData]);
 
+  // 4️⃣ React Query Client for invalidation
+  const qc = useQueryClient();
+
+  // 5️⃣ Mutation for add/update/delete
+  const mutation = useMutation({
+    mutationFn: (payload) => updateFAQsContent(payload),
+    onSuccess: () => {
+      // refetch the whole webContent
+      qc.invalidateQueries(['webContent']);
+      toast.success('Changes saved');
+      setFormOpen(false);
+      setDeleteOpen(false);
+      setSelected(null);
+    },
+    onError: (err) => {
+      const msg = err.response?.data?.message || err.message;
+      toast.error(msg);
+    },
+  });
+
+  // 6️⃣ Handlers
   const handleSave = () => {
     const { question, answer } = formData;
     if (!question.trim() || !answer.trim()) {
-      toast.error('Please enter both question and answer.');
-      return;
+      return toast.error('Both question and answer are required');
     }
 
+    // Build payload following your backend shape
     if (selected) {
-      setFaqs((list) =>
-        list.map((fq) =>
-          fq.id === selected.id ? { ...fq, question, answer } : fq
-        )
-      );
-      toast.success('FAQ updated');
+      // update
+      mutation.mutate({
+        FAQsContentUpdate: [
+          { FAQsId: selected.id, FAQsQuestion: question, FAQsAnswer: answer },
+        ],
+        NewFAQsContentAdd: [],
+        FAQsContentDelete: [],
+      });
     } else {
-      const newId = `temp-${Date.now()}`;
-      setFaqs((list) => [...list, { id: newId, question, answer }]);
-      toast.success('FAQ added');
+      // add
+      mutation.mutate({
+        FAQsContentUpdate: [],
+        NewFAQsContentAdd: [{ FAQsQuestion: question, FAQsAnswer: answer }],
+        FAQsContentDelete: [],
+      });
     }
-
-    setFormOpen(false);
-    setSelected(null);
-    setFormData({ question: '', answer: '' });
   };
 
-  const confirmDelete = () => {
+  const handleDelete = () => {
     if (!selected) return;
-    setFaqs((list) => list.filter((fq) => fq.id !== selected.id));
-    toast.success('FAQ deleted');
-    setDeleteOpen(false);
-    setSelected(null);
+    mutation.mutate({
+      FAQsContentUpdate: [],
+      NewFAQsContentAdd: [],
+      FAQsContentDelete: [selected.id],
+    });
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow max-w-4xl mx-auto space-y-6">
-      {/* Header & Add Button */}
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-semibold">FAQs Content</h3>
         <Dialog
@@ -92,39 +119,34 @@ export default function FAQsManager({ initialData }) {
             <Button>Add FAQ</Button>
           </DialogTrigger>
           <DialogContent>
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold">{selected ? 'Edit FAQ' : 'New FAQ'}</h2>
-              <p className="text-sm text-gray-500">
-                {selected
-                  ? `Modify FAQ ${selected.id}`
-                  : 'Enter details for a new FAQ question and answer.'}
-              </p>
-            </div>
+            <DialogTitle>{selected ? 'Edit FAQ' : 'New FAQ'}</DialogTitle>
             <div className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Question</label>
+                <label className="block mb-1 text-sm font-medium">Question</label>
                 <Input
                   value={formData.question}
                   onChange={(e) =>
-                    setFormData({ ...formData, question: e.target.value })
+                    setFormData((f) => ({ ...f, question: e.target.value }))
                   }
                   placeholder="Enter FAQ question"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Answer</label>
+                <label className="block mb-1 text-sm font-medium">Answer</label>
                 <Textarea
                   rows={4}
                   value={formData.answer}
                   onChange={(e) =>
-                    setFormData({ ...formData, answer: e.target.value })
+                    setFormData((f) => ({ ...f, answer: e.target.value }))
                   }
                   placeholder="Enter FAQ answer"
                 />
               </div>
             </div>
             <DialogFooter className="mt-4">
-              <Button onClick={handleSave}>{selected ? 'Update' : 'Add'}</Button>
+              <Button onClick={handleSave} disabled={mutation.isLoading}>
+                {mutation.isLoading ? 'Saving…' : selected ? 'Update' : 'Add'}
+              </Button>
               <DialogClose asChild>
                 <Button variant="ghost">Cancel</Button>
               </DialogClose>
@@ -133,7 +155,7 @@ export default function FAQsManager({ initialData }) {
         </Dialog>
       </div>
 
-      {/* FAQ Table */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <Table className="w-full min-w-[600px]">
           <TableHeader>
@@ -148,12 +170,8 @@ export default function FAQsManager({ initialData }) {
             {faqs.map((fq) => (
               <TableRow key={fq.id} className="hover:bg-gray-50">
                 <TableCell>{fq.id}</TableCell>
-                <TableCell className="max-w-xs truncate" title={fq.question}>
-                  {fq.question}
-                </TableCell>
-                <TableCell className="max-w-xs truncate" title={fq.answer}>
-                  {fq.answer}
-                </TableCell>
+                <TableCell title={fq.question}>{fq.question}</TableCell>
+                <TableCell title={fq.answer}>{fq.answer}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button
                     size="sm"
@@ -166,6 +184,7 @@ export default function FAQsManager({ initialData }) {
                   >
                     Edit
                   </Button>
+
                   <Dialog
                     open={isDeleteOpen && selected?.id === fq.id}
                     onOpenChange={setDeleteOpen}
@@ -183,16 +202,18 @@ export default function FAQsManager({ initialData }) {
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
-                      <div className="space-y-2">
-                        <h2 className="text-xl font-bold">Delete FAQ</h2>
-                        <p className="text-sm text-gray-500">
-                          Are you sure you want to delete{' '}
-                          <span className="font-semibold">{selected?.id}</span>? This cannot be undone.
-                        </p>
-                      </div>
+                      <DialogTitle>Confirm Delete</DialogTitle>
+                      <p>
+                        Are you sure you want to delete{' '}
+                        <span className="font-semibold">{fq.question}</span>?
+                      </p>
                       <DialogFooter className="mt-4">
-                        <Button variant="destructive" onClick={confirmDelete}>
-                          Delete
+                        <Button
+                          variant="destructive"
+                          onClick={handleDelete}
+                          disabled={mutation.isLoading}
+                        >
+                          {mutation.isLoading ? 'Deleting…' : 'Delete'}
                         </Button>
                         <DialogClose asChild>
                           <Button variant="outline">Cancel</Button>

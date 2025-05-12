@@ -1,163 +1,104 @@
-import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { useSwipeable } from "react-swipeable";
-import { Edit3, Trash2, Eye, PlusCircle, Filter, Search } from "lucide-react";
+// src/Layout/AllServices.layout.jsx
 
-/**
- * DEMO DATA
- * Replace with your actual services data, fetched from an API or server.
- */
-const demoServices = [
-  {
-    id: 1,
-    title: "TripSet — Travel Agency",
-    category: "Travel Agency",
-    description:
-      "An all-in-one travel solution for booking flights, hotels, and more.",
-    image: "https://res.cloudinary.com/shotlin/image/upload/f_auto,q_auto:low,w_500/c_fill,dpr_auto,f_avif,q_auto:eco,w_800/v1/images/1738250358896?_a=BAMCkGa40",
-  },
-  {
-    id: 2,
-    title: "Bombon — SaaS & Finance Agency",
-    category: "SaaS & Finance",
-    description:
-      "Manage your finances with this powerful SaaS solution for small businesses.",
-    image: "https://res.cloudinary.com/shotlin/image/upload/f_auto,q_auto:low,w_500/c_fill,dpr_auto,f_avif,q_auto:eco,w_800/v1/images/1738251095336?_a=BAMCkGa40",
-  },
-  {
-    id: 3,
-    title: "Qupe — SaaS & Startup",
-    category: "SaaS & Startup",
-    description:
-      "Scale your startup using robust solutions and advanced analytics.",
-    image: "https://res.cloudinary.com/shotlin/image/upload/f_auto,q_auto:low,w_500/c_fill,dpr_auto,f_avif,q_auto:eco,w_800/v1/images/1738251787317?_a=BAMCkGa40",
-  },
-  {
-    id: 4,
-    title: "Logo Branding",
-    category: "Design",
-    description:
-      "Professional branding and logo design for your growing business.",
-    image: "https://res.cloudinary.com/shotlin/image/upload/f_auto,q_auto:low,w_500/c_fill,dpr_auto,f_avif,q_auto:eco,w_800/v1/images/1738253235765?_a=BAMCkGa40",
-  },
-];
+import React, { useState, useMemo } from 'react'
+import {
+  Card, CardHeader, CardTitle, CardDescription,
+  CardContent, CardFooter,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
+import { useSwipeable } from 'react-swipeable'
+import {
+  Edit3, Trash2, Eye, PlusCircle,
+  Filter, Search as SearchIcon,
+} from 'lucide-react'
+import { useServiceContent } from '@/Hooks/useServiceContent'
 
 export default function AllServices() {
-  const [services, setServices] = useState(demoServices);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
+  const [inputTerm,  setInputTerm]  = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCtg,  setFilterCtg]  = useState('All')
+  const [page,       setPage]       = useState(1)
 
-  // Optional swipe-based navigation
+  // fetch whenever searchTerm, filterCtg, or page changes
+  const { data, isLoading, isError } = useServiceContent({
+    search:   searchTerm  || undefined,
+    category: filterCtg === 'All' ? undefined : filterCtg,
+    page,
+    limit: 5,
+  })
+
+  const services     = data?.newProducts      ?? []
+  const pagination   = data?.configProduct    ?? {}
+  const totalPages   = pagination.totalPages  ?? 1
+
+  // derive unique categories for filter dropdown
+  const availableCategories = useMemo(() => {
+    const cats = new Set(services.map(s => s.category))
+    return ['All', ...cats]
+  }, [services])
+
   const handlers = useSwipeable({
-    onSwipedLeft: () => handleSwipe("left"),
-    onSwipedRight: () => handleSwipe("right"),
-  });
+    onSwipedLeft:  () => console.log('← swipe'),
+    onSwipedRight: () => console.log('→ swipe'),
+  })
 
-  useEffect(() => {
-    // Fetch services from an API if needed:
-    // fetch("API_ENDPOINT")
-    //   .then((res) => res.json())
-    //   .then((data) => setServices(data));
-  }, []);
-
-  function handleSwipe(direction) {
-    // Example: load more services or change page
-    console.log(`Swiped ${direction} - you could load more services here!`);
+  const handleSearchClick = () => {
+    setSearchTerm(inputTerm.trim())
+    setPage(1)        // reset to first page on new search
   }
 
-  /**
-   * Filter + Search logic:
-   * 1) Check if the user selected a category other than "All"
-   * 2) Search by title or description using the searchTerm
-   */
-  const filteredServices = services.filter((service) => {
-    const matchesCategory =
-      filterCategory === "All" || service.category === filterCategory;
-    const matchesSearch =
-      service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesCategory && matchesSearch;
-  });
-
-  // Handler for removing a service from the state (demo only)
-  const handleDeleteService = (id) => {
-    setServices((prev) => prev.filter((service) => service.id !== id));
-  };
+  if (isLoading) return <p className="p-6 text-center">Loading services…</p>
+  if (isError)   return <p className="p-6 text-center text-red-600">Error loading services.</p>
 
   return (
-    <div
-      className="space-y-4 p-4 md:p-6 lg:p-8"
-      {...handlers} // attaches swipe gestures to this container
-    >
-      {/* Top Section: Search, Filter, and Add Service */}
+    <div className="space-y-4 p-4 md:p-6 lg:p-8" {...handlers}>
+      {/* Search + Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {/* Search + Filter */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
+        {/* Search */}
+        <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
+            <SearchIcon className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
             <Input
-              type="text"
               placeholder="Search services..."
               className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={inputTerm}
+              onChange={e => setInputTerm(e.target.value)}
             />
           </div>
+          <Button onClick={handleSearchClick}>Search</Button>
 
-          {/* Filter Dropdown */}
+          {/* Category filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <Filter size={16} />
-                {filterCategory === "All" ? "Filter" : filterCategory}
+                {filterCtg}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setFilterCategory("All")}>
-                All
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFilterCategory("Travel Agency")}
-              >
-                Travel Agency
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFilterCategory("SaaS & Finance")}
-              >
-                SaaS & Finance
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setFilterCategory("SaaS & Startup")}
-              >
-                SaaS & Startup
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterCategory("Design")}>
-                Design
-              </DropdownMenuItem>
+              {availableCategories.map(cat => (
+                <DropdownMenuItem
+                  key={cat}
+                  onClick={() => {
+                    setFilterCtg(cat)
+                    setPage(1)   // reset to first page on filter change
+                  }}
+                >
+                  {cat}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Add Service Button */}
+        {/* Add Service button */}
         <Button className="flex items-center gap-2">
           <PlusCircle size={18} />
           Add Service
@@ -166,33 +107,58 @@ export default function AllServices() {
 
       <Separator />
 
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredServices.map((service) => (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            onDelete={() => handleDeleteService(service.id)}
-          />
-        ))}
+      {/* Grid or empty state */}
+      {services.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {services.map(svc => (
+              <ServiceCard
+                key={svc.id}
+                service={{
+                  id: svc.id,
+                  title: svc.title,
+                  category: svc.category,
+                  description: svc.description || '',
+                  image: svc.image,
+                }}
+                onDelete={() => console.log('delete', svc.id)}
+              />
+            ))}
+          </div>
 
-        {filteredServices.length === 0 && (
-          <p className="text-sm text-gray-500 col-span-full">
-            No services found. Try changing your filter or search.
-          </p>
-        )}
-      </div>
+          {/* Pagination controls */}
+          <div className="flex justify-center items-center space-x-4 mt-6">
+            <Button
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              Prev
+            </Button>
+            <span>Page {page} of {totalPages}</span>
+            <Button
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="p-6 text-center text-gray-500">
+          {searchTerm
+            ? 'This searching service is invalid'
+            : 'No services to display.'}
+        </p>
+      )}
     </div>
-  );
+  )
 }
 
-/**
- * SERVICE CARD COMPONENT
- * Displays an image, title, description, and action buttons.
- */
 function ServiceCard({ service, onDelete }) {
   return (
-    <div  className="bg-white shadow-sm rounded-md transition-transform duration-200 hover:scale-[1.01]">
+    <div className="bg-white shadow-sm rounded-md hover:scale-[1.01] transition-transform">
       <CardHeader className="p-0">
         <img
           src={service.image}
@@ -211,9 +177,7 @@ function ServiceCard({ service, onDelete }) {
         </p>
       </CardContent>
       <CardFooter className="p-4 flex items-center justify-between">
-        {/* Left: Edit & Delete */}
         <div className="flex gap-2">
-          {/* Edit button with Tooltip */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="sm" className="p-2">
@@ -224,8 +188,6 @@ function ServiceCard({ service, onDelete }) {
               <p className="text-xs">Edit Service</p>
             </TooltipContent>
           </Tooltip>
-
-          {/* Delete button with Tooltip */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -242,13 +204,10 @@ function ServiceCard({ service, onDelete }) {
             </TooltipContent>
           </Tooltip>
         </div>
-
-        {/* Right: View Details */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="default" size="sm" className="flex items-center gap-1">
-              <Eye className="h-4 w-4" />
-              <span>View</span>
+              <Eye className="h-4 w-4" /> View
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
@@ -257,5 +216,5 @@ function ServiceCard({ service, onDelete }) {
         </Tooltip>
       </CardFooter>
     </div>
-  );
+  )
 }

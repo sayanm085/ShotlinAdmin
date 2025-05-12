@@ -14,17 +14,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { toast, Toaster } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 export default function HeroContentForm() {
-  // 1️⃣ Fetch & refetch helper
   const { data, isLoading, isError, refetch } = useWebContent();
   const updateMutation = useUpdateHeroContent();
 
-  // 2️⃣ Preview state
   const [previewImage, setPreviewImage] = useState('');
 
-  // 3️⃣ React Hook Form
   const form = useForm({
     defaultValues: {
       heroTitle: '',
@@ -33,9 +30,9 @@ export default function HeroContentForm() {
       heroImage: null,
     },
   });
-  const { handleSubmit, control, reset } = form;
 
-  // 4️⃣ When data changes, reset form & preview
+  const { handleSubmit, control, reset, setValue, watch } = form;
+
   useEffect(() => {
     if (data?.hero) {
       const { heroTitle, heroDescription, heroVideoUrl, heroImage } = data.hero;
@@ -44,19 +41,18 @@ export default function HeroContentForm() {
     }
   }, [data, reset]);
 
-  // 5️⃣ Submit handler
   const onSubmit = async (values) => {
     const formData = new FormData();
     formData.append('heroTitle', values.heroTitle);
     formData.append('heroDescription', values.heroDescription);
     formData.append('heroVideoUrl', values.heroVideoUrl);
+
     if (values.heroImage?.[0]) {
       formData.append('heroImage', values.heroImage[0]);
     }
 
     try {
       await updateMutation.mutateAsync(formData);
-      // Immediately refresh from server
       await refetch();
       toast.success('You changed successfully', { position: 'top-right' });
     } catch (err) {
@@ -65,18 +61,16 @@ export default function HeroContentForm() {
     }
   };
 
-  // 6️⃣ Loading / error
   if (isLoading) {
     return <p className="p-6 text-center">Loading hero content…</p>;
   }
+
   if (isError) {
     return <p className="p-6 text-center text-red-600">Error loading hero content.</p>;
   }
 
-  // 7️⃣ Render form
   return (
     <div className="relative p-6 bg-white rounded-lg shadow-md max-w-2xl mx-auto">
-      <Toaster />
       <h3 className="text-2xl font-semibold mb-4">Edit Hero Section</h3>
 
       <Form {...form}>
@@ -119,19 +113,19 @@ export default function HeroContentForm() {
             name="heroVideoUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Video URL (YouTube embed link)</FormLabel>
+                <FormLabel>Video URL (YouTube link)</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="https://www.youtube.com/embed/..." />
+                  <Input {...field} placeholder="https://youtu.be/..." />
                 </FormControl>
               </FormItem>
             )}
           />
 
-          {/* Image Upload */}
+          {/* Hero Image Upload */}
           <FormField
             control={control}
             name="heroImage"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Hero Image</FormLabel>
                 <FormControl>
@@ -139,9 +133,10 @@ export default function HeroContentForm() {
                     type="file"
                     accept="image/*"
                     onChange={(e) => {
-                      field.onChange(e.target.files);
-                      if (e.target.files?.[0]) {
-                        setPreviewImage(URL.createObjectURL(e.target.files[0]));
+                      const files = e.target.files;
+                      if (files?.length) {
+                        setValue('heroImage', files); // ✅ critical for RHF
+                        setPreviewImage(URL.createObjectURL(files[0]));
                       }
                     }}
                     className="block w-full text-sm text-gray-600"
@@ -151,7 +146,7 @@ export default function HeroContentForm() {
                   <img
                     src={previewImage}
                     alt="Hero Preview"
-                    className="mt-3 w-full h-auto rounded"
+                    className="mt-3 w-full h-auto rounded border"
                   />
                 )}
               </FormItem>
