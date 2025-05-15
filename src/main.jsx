@@ -63,6 +63,7 @@ const router = createBrowserRouter(
           <Route path="quotationmanager" element={<QuotationManager />} />
           <Route path="financialcalculator" element={<FinancialCalculator />} />
           <Route path="servicesupload" element={<ServicesUpload />} />
+          <Route path="servicesedit/:id" element={<ServicesUpload />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
         <Route path="login" element={<LoginPage />} />

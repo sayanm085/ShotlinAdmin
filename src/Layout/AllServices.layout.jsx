@@ -99,10 +99,12 @@ export default function AllServices() {
         </div>
 
         {/* Add Service button */}
+        <a href="/dashboard/servicesupload">
         <Button className="flex items-center gap-2">
           <PlusCircle size={18} />
           Add Service
         </Button>
+        </a>
       </div>
 
       <Separator />
@@ -178,6 +180,9 @@ function ServiceCard({ service, onDelete }) {
       </CardContent>
       <CardFooter className="p-4 flex items-center justify-between">
         <div className="flex gap-2">
+
+          <a href={`/dashboard/servicesedit/${service.id}`}>
+          {/* Edit button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="sm" className="p-2">
@@ -188,6 +193,7 @@ function ServiceCard({ service, onDelete }) {
               <p className="text-xs">Edit Service</p>
             </TooltipContent>
           </Tooltip>
+          </a>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
