@@ -44,3 +44,11 @@ export async function updateProduct(id, formData) {
   });
   return data.data;
 }
+
+/**
+ * Delete a product by ID.
+ */
+export async function deleteProduct(id) {
+  const { data } = await axiosInstance.delete(`/product-delete/${id}`)
+  return data
+}
