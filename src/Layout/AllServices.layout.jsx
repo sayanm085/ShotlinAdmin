@@ -1,6 +1,7 @@
 // src/Layout/AllServices.layout.jsx
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams, useNavigate } from 'react-router'
 import {
   Card, CardHeader, CardTitle, CardDescription,
   CardContent, CardFooter,
@@ -30,27 +31,48 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
-export default function AllServices() {
-  const [inputTerm,  setInputTerm]  = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterCtg,  setFilterCtg]  = useState('All')
-  const [page,       setPage]       = useState(1)
+/**
+ * Custom hook to keep `searchTerm` & `page` in URL and push history entries
+ */
+function useHistoryState() {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
-  // confirmation dialog state
+  // parse current values from URL
+  const searchTerm = searchParams.get('search') || ''
+  const page       = parseInt(searchParams.get('page'), 10) || 1
+
+  // update URL (always pushes a new history entry)
+  const update = ({ searchTerm: newSearch, page: newPage }) => {
+    const params = new URLSearchParams()
+    if (newSearch) params.set('search', newSearch)
+    if (newPage > 1) params.set('page', String(newPage))
+    navigate(`/dashboard/serviceslist?${params.toString()}`, { replace: false })
+  }
+
+  return { searchTerm, page, update }
+}
+
+export default function AllServices() {
+  // URL-driven state & updater
+  const { searchTerm, page, update } = useHistoryState()
+
+  // local-only states
+  const [inputTerm, setInputTerm]   = useState(searchTerm)
+  const [filterCtg,  setFilterCtg]  = useState('All')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [toDeleteId,  setToDeleteId]  = useState(null)
 
   // fetch list
   const { data, isLoading, isError } = useServiceContent({
-    search:   searchTerm  || undefined,
+    search:   searchTerm || undefined,
     category: filterCtg === 'All' ? undefined : filterCtg,
     page,
     limit: 5,
   })
 
   const services   = data?.newProducts   ?? []
-  const pagination = data?.configProduct ?? {}
-  const totalPages = pagination.totalPages ?? 1
+  const totalPages = data?.configProduct?.totalPages ?? 1
 
   // derive categories
   const availableCategories = useMemo(() => {
@@ -58,7 +80,12 @@ export default function AllServices() {
     return ['All', ...cats]
   }, [services])
 
-  // swipe handlers (unused here but attached)
+  // sync inputTerm when URL-driven searchTerm changes
+  useEffect(() => {
+    setInputTerm(searchTerm)
+  }, [searchTerm])
+
+  // swipe handlers (if needed)
   const handlers = useSwipeable({
     onSwipedLeft:  () => console.log('← swipe'),
     onSwipedRight: () => console.log('→ swipe'),
@@ -74,15 +101,23 @@ export default function AllServices() {
 
   function confirmDelete() {
     deleteService(toDeleteId, {
-      onSuccess: () => {
-        setConfirmOpen(false)
-      },
+      onSuccess: () => setConfirmOpen(false),
     })
   }
 
+  // handlers that update URL + history
   const handleSearchClick = () => {
-    setSearchTerm(inputTerm.trim())
-    setPage(1)
+    update({ searchTerm: inputTerm.trim(), page: 1 })
+  }
+
+  const handlePageChange = (newPage) => {
+    update({ searchTerm, page: newPage })
+  }
+
+  // category filter stays local, but resets page in URL
+  const handleCategoryChange = (cat) => {
+    setFilterCtg(cat)
+    update({ searchTerm, page: 1 })
   }
 
   if (isLoading) return <p className="p-6 text-center">Loading services…</p>
@@ -138,10 +173,7 @@ export default function AllServices() {
                 {availableCategories.map(cat => (
                   <DropdownMenuItem
                     key={cat}
-                    onClick={() => {
-                      setFilterCtg(cat)
-                      setPage(1)
-                    }}
+                    onClick={() => handleCategoryChange(cat)}
                   >
                     {cat}
                   </DropdownMenuItem>
@@ -177,7 +209,7 @@ export default function AllServices() {
               <Button
                 variant="outline"
                 disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => handlePageChange(page - 1)}
               >
                 Prev
               </Button>
@@ -185,7 +217,7 @@ export default function AllServices() {
               <Button
                 variant="outline"
                 disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => handlePageChange(page + 1)}
               >
                 Next
               </Button>

@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader,
   DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import Spinner from '@/components/ui/spinner'
+import {Spinner} from '@/components/ui/spinner'
 import { toast } from 'react-hot-toast'
 import { X } from 'lucide-react'
 import {
