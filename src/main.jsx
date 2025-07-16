@@ -22,7 +22,8 @@ import ContactRequestsTable from './Layout/ContactRequestsTable.layout.jsx'
 // import ContactReply from './Layout/ContactReply.layout.jsx'
 
 import WebContentedit from './Layout/WebContentedit.layout'
-import QuotationManager from './Layout/QuotationManager.layout.jsx'
+import InvoiceDashboard from './Layout/InvoiceDashboard.layout.jsx'
+import InvoiceCreate from './Layout/InvoiceCreate.layout.jsx'
 import FinancialCalculator from './Layout/FinancialCalculator.layout.jsx'
 import ServicesUpload from './Layout/ServicesUpload.layout.jsx'
 import LoginPage from './page/Login.jsx'
@@ -65,7 +66,8 @@ const router = createBrowserRouter(
           <Route path="contactrequests" element={<ContactRequestsTable />} />
 
           <Route path="webcontentedit" element={<WebContentedit />} />
-          <Route path="quotationmanager" element={<QuotationManager />} />
+          <Route path="invoicedashboard" element={<InvoiceDashboard />} />
+          <Route path="invoicecreate" element={<InvoiceCreate />} />
           <Route path="financialcalculator" element={<FinancialCalculator />} />
           <Route path="servicesupload" element={<ServicesUpload />} />
           <Route path="servicesedit/:id" element={<ServicesUpload />} />
