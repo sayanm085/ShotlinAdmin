@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { 
-  Save, X, ArrowLeft, Eye, Download, Send, Clock, User, ChevronDown
+  Save, X, ArrowLeft, Eye, Download, Send, Clock, User, ChevronDown, Loader2
 } from 'lucide-react';
+import axiosInstance from '@/lib/axios';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -42,8 +43,8 @@ export default function InvoiceCreate() {
   const [pendingTypeChange, setPendingTypeChange] = useState(null);
   const previewRef = useRef(null);
 
-  // User and date info
-  const currentDateTime = "2025-07-15 20:11:46";
+  // Updated user and date info
+  const currentDateTime = "2025-07-16 10:47:01";
   const currentUser = "sayanm085";
 
   // Form state
@@ -112,6 +113,77 @@ export default function InvoiceCreate() {
     setUnsavedChanges(true);
   }, [invoice]);
   
+  // Get the API endpoint based on invoice type
+  const getApiEndpoint = (type) => {
+    switch (type) {
+      case 'quotation':
+        return '/api/v1/invoice/quotation';
+      case 'advance':
+        return '/api/v1/invoice/advance-payment';
+      case 'final':
+        return '/api/v1/invoice/final-payment';
+      default:
+        return '/api/v1/invoice/quotation';
+    }
+  };
+  
+  // Format invoice data for API submission
+  const formatInvoicePayload = (status) => {
+    // Basic validation and data formatting for API submission
+    if (!invoice.client) {
+      throw new Error('Client information is required');
+    }
+    
+    // Fix: Check for both _id and id properties on client
+    const clientId = invoice.client._id || invoice.client.id;
+    if (!clientId) {
+      throw new Error('Invalid client data: Missing client ID');
+    }
+    
+    if (invoice.services.some(service => !service.name || !service.quantity || !service.unitPrice)) {
+      throw new Error('Please fill in all service details');
+    }
+    
+    // Format services
+    const formattedServices = invoice.services.map(service => ({
+      name: service.name,
+      description: service.description || '',
+      quantity: parseInt(service.quantity, 10),
+      unitPrice: parseFloat(service.unitPrice),
+      hsnSacCode: service.hsnSacCode || ''
+    }));
+    
+    // Format project details
+    const projectDetails = invoice.project ? {
+      name: invoice.project.name,
+      description: invoice.project.description || ''
+    } : {
+      name: '',
+      description: ''
+    };
+    
+    // Return formatted payload
+    return {
+      client: clientId, // Use the extracted client ID
+      advancepaymentpercent: invoice.type === 'advance' ? parseInt(invoice.advancepaymentpercent, 10) : undefined,
+      location: invoice.location,
+      expectedDeliveryDate: format(invoice.dueDate, 'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''),
+      issueDate: format(invoice.issuedDate, 'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''),
+      services: formattedServices,
+      projectDetails,
+      summary: {
+        currency: invoice.summary.currency || 'INR',
+        subtotal: invoice.summary.subtotal,
+        discount: invoice.discount.enabled ? invoice.summary.discountAmount : 0,
+        tax: invoice.tax.enabled ? invoice.summary.taxAmount : 0,
+        total: invoice.summary.total
+      },
+      status,
+      notes: invoice.notes,
+      termsAndConditions: invoice.termsAndConditions
+    };
+  };
+  
   // Handle form submission
   const handleSave = async (status = 'draft') => {
     // Basic validation
@@ -134,16 +206,16 @@ export default function InvoiceCreate() {
     setIsSaving(true);
     
     try {
-      // Format the payload as it would be sent to the API
-      const payload = {
-        ...invoice,
-        status,
-        issuedDate: format(invoice.issuedDate, 'yyyy-MM-dd'),
-        dueDate: format(invoice.dueDate, 'yyyy-MM-dd'),
-      };
+      // Format the payload for API submission
+      const payload = formatInvoicePayload(status);
+      console.log('Submitting invoice payload:', payload);
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get the appropriate API endpoint based on invoice type
+      const apiEndpoint = getApiEndpoint(invoiceType);
+      
+      // Make the API call
+      const response = await axiosInstance.post(apiEndpoint, payload);
+      console.log('Invoice creation response:', response.data);
       
       // Show success message
       toast.success(status === 'draft' 
@@ -152,11 +224,17 @@ export default function InvoiceCreate() {
       
       setUnsavedChanges(false);
       
-      // Show preview
-      setShowPreview(true);
+      // Show preview or redirect based on status
+      if (status === 'draft') {
+        setShowPreview(true);
+      } else {
+        // Optional: redirect to invoice list or detail page
+        // navigate('/invoices');
+        setShowPreview(true);
+      }
     } catch (error) {
       console.error('Error saving invoice:', error);
-      toast.error('Failed to save invoice');
+      toast.error(error.message || 'Failed to save invoice');
     } finally {
       setIsSaving(false);
     }
@@ -254,9 +332,7 @@ export default function InvoiceCreate() {
               <Button disabled={isSaving} className="whitespace-nowrap">
                 {isSaving ? (
                   <>
-                    <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
                 ) : (
@@ -273,7 +349,7 @@ export default function InvoiceCreate() {
                 <Save className="mr-2 h-4 w-4" />
                 Save as Draft
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSave('sent')} disabled={isSaving}>
+              <DropdownMenuItem onClick={() => handleSave('pending')} disabled={isSaving}>
                 <Send className="mr-2 h-4 w-4" />
                 Save and Send
               </DropdownMenuItem>
@@ -421,7 +497,7 @@ export default function InvoiceCreate() {
       <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <Clock className="h-3.5 w-3.5" />
-          <span>Last updated: {format(new Date(currentDateTime), 'dd MMM yyyy • HH:mm:ss')}</span>
+          <span>Last updated: {currentDateTime}</span>
         </div>
         
         <div className="flex items-center gap-2">

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
   ChevronDown, ChevronUp, Eye, Download, Send, FileText, 
-  MoreHorizontal, ArrowUpDown, CheckCircle, Ban 
+  MoreHorizontal, ArrowUpDown, CheckCircle, Ban, CreditCard
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import axiosInstance from '@/lib/axios';
 import { toast } from 'react-hot-toast';
-import PDFExporter from '@/components/PDFExporter'; // Fixed import (removed curly braces)
+import PDFExporter from '@/components/PDFExporter';
+import ConversionModal from '@/components/ConversionModal';
+import PaymentModal from '@/components/PaymentModal';
 
 // Shadcn UI Components
 import {
@@ -35,6 +37,14 @@ export default function InvoiceTable({ invoices = [], onView }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceDetails, setInvoiceDetails] = useState(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
+  
+  // Conversion modal state
+  const [conversionModalOpen, setConversionModalOpen] = useState(false);
+  const [invoiceToConvert, setInvoiceToConvert] = useState(null);
+  
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [invoiceForPayment, setInvoiceForPayment] = useState(null);
 
   // Handle sorting
   const handleSort = (key) => {
@@ -90,12 +100,13 @@ export default function InvoiceTable({ invoices = [], onView }) {
       viewed: "bg-purple-50 text-purple-600 border-purple-200",
       paid: "bg-green-50 text-green-600 border-green-200",
       overdue: "bg-red-50 text-red-600 border-red-200",
-      cancelled: "bg-gray-50 text-gray-600 border-gray-200"
+      cancelled: "bg-gray-50 text-gray-600 border-gray-200",
+      partially_paid: "bg-amber-50 text-amber-600 border-amber-200"
     };
     
     return (
       <Badge variant="outline" className={`${styles[status] || ""} border px-3 py-1 font-medium`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'partially_paid' ? 'Partially Paid' : status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -171,6 +182,24 @@ export default function InvoiceTable({ invoices = [], onView }) {
     }
   };
 
+  // Handle opening conversion modal
+  const handleConvertClick = (invoice) => {
+    setInvoiceToConvert(invoice);
+    setConversionModalOpen(true);
+  };
+  
+  // Handle opening payment modal
+  const handleRecordPaymentClick = (invoice) => {
+    setInvoiceForPayment(invoice);
+    setPaymentModalOpen(true);
+  };
+  
+  // Handle payment success - reload the page to show updated status
+  const handlePaymentSuccess = () => {
+    // Reload the data
+    window.location.reload();
+  };
+
   if (invoices.length === 0) {
     return (
       <div className="text-center py-10 text-muted-foreground">
@@ -186,6 +215,31 @@ export default function InvoiceTable({ invoices = [], onView }) {
         <div className="hidden">
           <PDFExporter data={invoiceDetails} />
         </div>
+      )}
+      
+      {/* Conversion Modal */}
+      {invoiceToConvert && (
+        <ConversionModal
+          isOpen={conversionModalOpen}
+          onClose={() => {
+            setConversionModalOpen(false);
+            setInvoiceToConvert(null);
+          }}
+          invoice={invoiceToConvert}
+        />
+      )}
+      
+      {/* Payment Modal */}
+      {invoiceForPayment && (
+        <PaymentModal
+          isOpen={paymentModalOpen}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setInvoiceForPayment(null);
+          }}
+          invoice={invoiceForPayment}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
       
       <Table className="border-collapse">
@@ -301,10 +355,21 @@ export default function InvoiceTable({ invoices = [], onView }) {
                       Send via Email
                     </DropdownMenuItem>
                     
-                    {invoice.type === 'quotation' && (
-                      <DropdownMenuItem onClick={() => navigate(`/invoice/convert/${invoice._id}`)}>
+                    {/* Record Payment option - available for invoices that aren't fully paid */}
+                    {invoice.type !== 'quotation' && !['paid', 'cancelled', 'draft'].includes(invoice.status) && (
+                      <DropdownMenuItem onClick={() => handleRecordPaymentClick(invoice)}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Record Payment
+                      </DropdownMenuItem>
+                    )}
+                    
+                    {/* Convert invoice options */}
+                    {(invoice.type === 'quotation' || invoice.type === 'advance') && (
+                      <DropdownMenuItem onClick={() => handleConvertClick(invoice)}>
                         <FileText className="mr-2 h-4 w-4" />
-                        Convert to Invoice
+                        {invoice.type === 'quotation' 
+                          ? 'Convert to Invoice' 
+                          : 'Convert to Final Invoice'}
                       </DropdownMenuItem>
                     )}
                     

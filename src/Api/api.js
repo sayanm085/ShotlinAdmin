@@ -1,4 +1,4 @@
-const api ="http://localhost:5000/api/"
+const api ="http://localhost:3000/api/"
 
 
 export default api
