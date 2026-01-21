@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import PDFExporter from '@/components/PDFExporter';
 import ConversionModal from '@/components/ConversionModal';
 import PaymentModal from '@/components/PaymentModal';
+import AgreementPDFGenerator from '@/components/AgreementPDFGenerator'; // Import the new component
 
 // Shadcn UI Components
 import {
@@ -30,13 +31,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function InvoiceTable({ invoices = [], onView }) {
   const navigate = useNavigate();
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceDetails, setInvoiceDetails] = useState(null);
-  const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [loadingInvoice, setLoadingInvoice] = useState({});
   
   // Conversion modal state
   const [conversionModalOpen, setConversionModalOpen] = useState(false);
@@ -45,6 +47,10 @@ export default function InvoiceTable({ invoices = [], onView }) {
   // Payment modal state
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [invoiceForPayment, setInvoiceForPayment] = useState(null);
+
+  // Agreement PDF state
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreementData, setAgreementData] = useState(null);
 
   // Handle sorting
   const handleSort = (key) => {
@@ -113,71 +119,101 @@ export default function InvoiceTable({ invoices = [], onView }) {
 
   // Fetch invoice details for PDF generation
   const fetchInvoiceDetails = async (id) => {
-    setLoadingInvoice(true);
-    setSelectedInvoice(id);
+    setLoadingInvoice(prev => ({ ...prev, [id]: true }));
     
     try {
       const response = await axiosInstance.get(`/api/v1/invoice/${id}`);
-      setInvoiceDetails(response.data.data);
-      return response.data.data;
+      const invoiceData = response.data.data;
+      
+      // Save the invoice details for the specific ID
+      setInvoiceDetails(prev => ({
+        ...prev,
+        [id]: invoiceData
+      }));
+      
+      return invoiceData;
     } catch (error) {
       console.error('Error fetching invoice details:', error);
       toast.error('Failed to fetch invoice details for PDF generation');
       return null;
     } finally {
-      setLoadingInvoice(false);
+      setLoadingInvoice(prev => ({ ...prev, [id]: false }));
     }
   };
 
   // Handle download with PDFExporter
   const handleDownloadPdf = async (id) => {
-    toast.loading('Preparing PDF...');
-    const invoiceData = await fetchInvoiceDetails(id);
+    toast.loading('Preparing PDF...', { id: 'pdf-loading' });
     
-    if (invoiceData) {
-      // The PDF will be automatically downloaded by the PDFExporter component
-      // We just need to display the component temporarily
-      toast.dismiss();
-    } else {
-      toast.dismiss();
-      toast.error('Failed to generate PDF');
+    try {
+      const invoiceData = await fetchInvoiceDetails(id);
+      
+      if (invoiceData) {
+        // If we have data, set it to be used by the PDFExporter
+        setSelectedInvoice(id);
+        toast.success('PDF ready!', { id: 'pdf-loading' });
+        
+        // Trigger the download by simulating a click on the hidden button
+        document.getElementById(`download-pdf-${id}`).click();
+      } else {
+        toast.error('Failed to generate PDF', { id: 'pdf-loading' });
+      }
+    } catch (error) {
+      toast.error('Error generating PDF', { id: 'pdf-loading' });
     }
+  };
+
+  // Generate Agreement PDF
+  const handleGenerateAgreement = (invoice) => {
+    // Prepare the data for the agreement
+    const agreementData = {
+      clientName: invoice.client?.name || 'Client',
+      clientAddress: invoice.client?.fullAddress || invoice.client?.address || 'Client Address',
+      projectAmount: invoice.summary?.total || 0,
+      agreementDate: format(new Date(), "do 'day of' MMMM, yyyy")
+    };
+    console.log(agreementData)
+    
+    setAgreementData(agreementData);
+    setShowAgreement(true);
+    
+    // Trigger the agreement download after a small delay
+    setTimeout(() => {
+      document.getElementById('download-agreement-button').click();
+      setShowAgreement(false);
+    }, 100);
   };
 
   const handleSendEmail = async (id) => {
     try {
-      toast.loading('Sending email...');
+      toast.loading('Sending email...', { id: 'email-sending' });
       const response = await axiosInstance.post(`/api/v1/invoice/${id}/send-email`);
       
-      toast.dismiss();
       if (response.data.success) {
-        toast.success("Invoice sent via email");
+        toast.success("Invoice sent via email", { id: 'email-sending' });
       } else {
-        toast.error(response.data.message || "Failed to send email");
+        toast.error(response.data.message || "Failed to send email", { id: 'email-sending' });
       }
     } catch (error) {
-      toast.dismiss();
-      toast.error("Failed to send email");
+      toast.error("Failed to send email", { id: 'email-sending' });
       console.error('Error sending email:', error);
     }
   };
 
   const handleMarkPaid = async (id) => {
     try {
-      toast.loading('Updating status...');
+      toast.loading('Updating status...', { id: 'status-update' });
       const response = await axiosInstance.patch(`/api/v1/invoice/${id}/status`, { status: 'paid' });
       
-      toast.dismiss();
       if (response.data.success) {
-        toast.success("Invoice marked as paid");
+        toast.success("Invoice marked as paid", { id: 'status-update' });
         // Reload data
         window.location.reload();
       } else {
-        toast.error(response.data.message || "Failed to update status");
+        toast.error(response.data.message || "Failed to update status", { id: 'status-update' });
       }
     } catch (error) {
-      toast.dismiss();
-      toast.error("Failed to update status");
+      toast.error("Failed to update status", { id: 'status-update' });
       console.error('Error updating status:', error);
     }
   };
@@ -210,10 +246,23 @@ export default function InvoiceTable({ invoices = [], onView }) {
 
   return (
     <div className="overflow-x-auto">
-      {/* Hidden PDF exporter that will be triggered when data is available */}
-      {invoiceDetails && (
+      {/* Hidden PDFExporters for each invoice */}
+      {invoiceDetails && Object.keys(invoiceDetails).map(id => (
+        <div key={`pdf-exporter-${id}`} className="hidden">
+          <PDFExporter 
+            data={invoiceDetails[id]} 
+            children={<button id={`download-pdf-${id}`}>Download</button>} 
+          />
+        </div>
+      ))}
+      
+      {/* Hidden Agreement Generator */}
+      {showAgreement && agreementData && (
         <div className="hidden">
-          <PDFExporter data={invoiceDetails} />
+          <AgreementPDFGenerator 
+            agreementData={agreementData}
+            children={<button id="download-agreement-button">Download Agreement</button>}
+          />
         </div>
       )}
       
@@ -319,7 +368,75 @@ export default function InvoiceTable({ invoices = [], onView }) {
               <TableCell>
                 {getStatusBadge(invoice.status)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right flex justify-end items-center space-x-1">
+                {/* Direct Download Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleDownloadPdf(invoice._id)}
+                        disabled={loadingInvoice[invoice._id]}
+                      >
+                        <span className="sr-only">Download PDF</span>
+                        {loadingInvoice[invoice._id] ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Download Invoice</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                {/* Agreement Download Button - only for advance invoices */}
+                {invoice.type === 'advance' && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleGenerateAgreement(invoice)}
+                        >
+                          <span className="sr-only">Download Agreement</span>
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Download Agreement</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                {/* Email Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleSendEmail(invoice._id)}
+                      >
+                        <span className="sr-only">Send Email</span>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Send via Email</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                {/* Dropdown for additional actions */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -333,26 +450,6 @@ export default function InvoiceTable({ invoices = [], onView }) {
                     <DropdownMenuItem onClick={() => onView(invoice._id)}>
                       <Eye className="mr-2 h-4 w-4" />
                       View Details
-                    </DropdownMenuItem>
-                    
-                    {/* Direct PDF download using PDFExporter */}
-                    {invoiceDetails && selectedInvoice === invoice._id ? (
-                      <PDFExporter data={invoiceDetails}>
-                        <DropdownMenuItem>
-                          <Download className="mr-2 h-4 w-4" />
-                          {loadingInvoice ? 'Preparing PDF...' : 'Download PDF'}
-                        </DropdownMenuItem>
-                      </PDFExporter>
-                    ) : (
-                      <DropdownMenuItem onClick={() => handleDownloadPdf(invoice._id)}>
-                        <Download className="mr-2 h-4 w-4" />
-                        {loadingInvoice && selectedInvoice === invoice._id ? 'Preparing PDF...' : 'Download PDF'}
-                      </DropdownMenuItem>
-                    )}
-                    
-                    <DropdownMenuItem onClick={() => handleSendEmail(invoice._id)}>
-                      <Send className="mr-2 h-4 w-4" />
-                      Send via Email
                     </DropdownMenuItem>
                     
                     {/* Record Payment option - available for invoices that aren't fully paid */}

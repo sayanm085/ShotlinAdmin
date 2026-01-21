@@ -10,7 +10,7 @@ import montserratMedium from '../assets/fonts/Montserrat-Medium.ttf';
 import montserratBold from '../assets/fonts/Montserrat-Bold.ttf';
 import montserratLight from '../assets/fonts/Montserrat-Light.ttf';
 import logo from '../assets/shotlinlogoforpdf.png';
-import signature from '../assets/sayansignature.png';
+import signature from '../assets/signature_stamp.png';
 import watermark from '../assets/shotlinlogoforpdf.png'; // Add a subtle brand watermark image
 import goldPattern from '../assets/shotlinlogoforpdf.png'; // Gold accent pattern
 
