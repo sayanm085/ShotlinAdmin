@@ -26,6 +26,7 @@ import InvoiceDashboard from './Layout/InvoiceDashboard.layout.jsx'
 import InvoiceCreate from './Layout/InvoiceCreate.layout.jsx'
 import FinancialCalculator from './Layout/FinancialCalculator.layout.jsx'
 import ServicesUpload from './Layout/ServicesUpload.layout.jsx'
+import RateCard from './Layout/RateCard.layout.jsx'
 import LoginPage from './page/Login.jsx'
 
 // React Query
@@ -71,6 +72,7 @@ const router = createBrowserRouter(
           <Route path="financialcalculator" element={<FinancialCalculator />} />
           <Route path="servicesupload" element={<ServicesUpload />} />
           <Route path="servicesedit/:id" element={<ServicesUpload />} />
+          <Route path="ratecard" element={<RateCard />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
         <Route path="login" element={<LoginPage />} />
