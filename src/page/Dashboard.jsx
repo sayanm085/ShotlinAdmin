@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarCheck,
-  FileText
+  FileText,
+  ReceiptText,
 } from "lucide-react";
 
 // Single menu item, showing icon + optional label
@@ -56,6 +57,7 @@ export default function Dashboard() {
       { icon: <CalendarCheck size={24} />, label: "Invoice Dashboard", to: "/dashboard/invoicedashboard" },
       { icon: <FileText size={24} />, label: "Invoice Create", to: "/dashboard/invoicecreate" },
       { icon: <CirclePercent size={24} />, label: "Financial Calculator", to: "/dashboard/financialcalculator" },
+      { icon: <ReceiptText size={24} />, label: "Rate Card", to: "/dashboard/ratecard" },
       
 
     ],
