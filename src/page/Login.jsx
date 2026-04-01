@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useNavigate } from "react-router";
+import axiosInstance from "@/lib/axios";
 
  import img from "../assets/SHOTLIN sdxd32-01.svg"; // Adjust the path to your logo
 
@@ -12,23 +14,35 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  // Basic login handler for demonstration
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Simple client-side validation
     if (!username || !password) {
       setError("Username and password are required.");
-    } else {
-      // Simulate a login API response (replace with your real API logic)
-      if (username !== "admin" || password !== "admin123") {
-        setError("Invalid credentials. Please try again.");
-      } else {
-        setError("");
-        // Redirect or update app state upon successful login
-        console.log("Login successful!");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      const { data } = await axiosInstance.post("/api/v1/auth/login", {
+        username,
+        password,
+      });
+      // Store the token and redirect to dashboard
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
       }
+      navigate("/");
+    } catch (err) {
+      const message =
+        err?.response?.data?.message || "Invalid credentials. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,8 +96,8 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              Login
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Logging in…" : "Login"}
             </Button>
           </form>
 

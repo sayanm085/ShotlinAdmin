@@ -1199,11 +1199,11 @@ const InvoicePDF = ({ documentData }) => {
             </View>
             <View style={styles.paymentDetail}>
               <Text style={styles.paymentLabel}>Account Number</Text>
-              <Text style={styles.paymentValue}>{sellerDetails?.accountNumber || '29680200000800'}</Text>
+              <Text style={styles.paymentValue}>{sellerDetails?.accountNumber || ''}</Text>
             </View>
             <View style={styles.paymentDetail}>
               <Text style={styles.paymentLabel}>IFSC</Text>
-              <Text style={styles.paymentValue}>{sellerDetails?.ifsc || 'BARB0HABRAX'}</Text>
+              <Text style={styles.paymentValue}>{sellerDetails?.ifsc || ''}</Text>
             </View>
             <View style={styles.paymentDetail}>
               <Text style={styles.paymentLabel}>Account Type</Text>
@@ -1211,11 +1211,11 @@ const InvoicePDF = ({ documentData }) => {
             </View>
             <View style={styles.paymentDetail}>
               <Text style={styles.paymentLabel}>Bank</Text>
-              <Text style={styles.paymentValue}>{sellerDetails?.bankName || 'Bank of Baroda'}</Text>
+              <Text style={styles.paymentValue}>{sellerDetails?.bankName || ''}</Text>
             </View>
             <View style={styles.paymentDetail}>
               <Text style={styles.paymentLabel}>UPI</Text>
-              <Text style={styles.paymentValue}>{sellerDetails?.upi || 'shotlin@axl'}</Text>
+              <Text style={styles.paymentValue}>{sellerDetails?.upi || ''}</Text>
             </View>
             
             {/* Payment Status */}
@@ -1385,7 +1385,12 @@ const InvoicePDF = ({ documentData }) => {
         {/* Luxury Footer */}
         <View style={styles.footer}>
           <Text>Generated on {new Date().toLocaleDateString('en-IN', {day: '2-digit', month: 'long', year: 'numeric'})}</Text>
-          <Text>For enquiries: {sellerDetails?.email || 'contact@shotlin.com'} | {sellerDetails?.phone || '+91 9876543210'}</Text>
+          {(() => {
+            const email = sellerDetails?.email || '';
+            const phone = sellerDetails?.phone || '';
+            const contact = [email, phone].filter(Boolean).join(' | ');
+            return contact ? <Text>For enquiries: {contact}</Text> : null;
+          })()}
         </View>
         
         {/* Page number */}
